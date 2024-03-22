@@ -42,8 +42,8 @@ app.post("/signup", async (req, res) => {
   }
 
   try {
-    // Hash password synchronously
-    const hash = bcrypt.hashSync(password, 5);
+    // Hash password asynchronously
+    const hash = await bcrypt.hash(password, 10); // 10 is the saltRounds
     await UserModel.create({ name, email, password: hash });
     return res.status(201).send({ msg: "User created successfully!" });
   } catch (error) {
@@ -58,13 +58,17 @@ app.post("/login", async (req, res) => {
     return res.send({ msg: "Email not found." });
   }
   const hash = user.password;
-  // Compare passwords synchronously
-  const result = bcrypt.compareSync(password, hash);
-  if (result) {
-    let token = jwt.sign({ userID: user._id }, "masai");
-    return res.send({ msg: "login successful ", token: token });
-  } else {
-    return res.send({ msg: "please enter valid password " });
+  // Compare passwords asynchronously
+  try {
+    const result = await bcrypt.compare(password, hash);
+    if (result) {
+      let token = jwt.sign({ userID: user._id }, "masai");
+      return res.send({ msg: "login successful ", token: token });
+    } else {
+      return res.send({ msg: "please enter valid password " });
+    }
+  } catch (error) {
+    return res.status(500).send({ msg: "Something went wrong!" });
   }
 });
 
