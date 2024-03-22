@@ -68,7 +68,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8001;
+const PORT = process.env._PORT || 8001;
 app.listen(PORT, async () => {
   try {
     await connection;
