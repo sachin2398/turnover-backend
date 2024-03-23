@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs"); // Import bcryptjs
 
 require("dotenv").config();
 const { connection } = require("./config/db");
@@ -41,10 +42,10 @@ app.post("/signup", async (req, res) => {
   }
 
   try {
-    // You can use a different hashing mechanism here, but it's recommended to use bcrypt
-    // Here's an example of using SHA-256 with a simple salt (not recommended for production)
-    const hash = sha256(password + process.env.SALT); // You need to define SALT in your .env file
-    await UserModel.create({ name, email, password: hash });
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
+
+    await UserModel.create({ name, email, password: hashedPassword });
     return res.status(201).send({ msg: "User created successfully!" });
   } catch (error) {
     return res.status(500).send({ msg: "Something went wrong!" });
@@ -57,9 +58,9 @@ app.post("/login", async (req, res) => {
   if (!user) {
     return res.send({ msg: "Email not found." });
   }
-  const hash = user.password;
   // Compare passwords
-  if (hash === sha256(password + process.env.SALT)) {
+  const passwordMatch = await bcrypt.compare(password, user.password);
+  if (passwordMatch) {
     let token = jwt.sign({ userID: user._id }, "masai");
     return res.send({ msg: "Login successful", token: token });
   } else {
