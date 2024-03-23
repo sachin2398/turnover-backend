@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
@@ -42,8 +41,9 @@ app.post("/signup", async (req, res) => {
   }
 
   try {
-    // Hash password asynchronously
-    const hash = await bcrypt.hash(password, 10); // 10 is the saltRounds
+    // You can use a different hashing mechanism here, but it's recommended to use bcrypt
+    // Here's an example of using SHA-256 with a simple salt (not recommended for production)
+    const hash = sha256(password + process.env.SALT); // You need to define SALT in your .env file
     await UserModel.create({ name, email, password: hash });
     return res.status(201).send({ msg: "User created successfully!" });
   } catch (error) {
@@ -58,21 +58,16 @@ app.post("/login", async (req, res) => {
     return res.send({ msg: "Email not found." });
   }
   const hash = user.password;
-  // Compare passwords asynchronously
-  try {
-    const result = await bcrypt.compare(password, hash);
-    if (result) {
-      let token = jwt.sign({ userID: user._id }, "masai");
-      return res.send({ msg: "login successful ", token: token });
-    } else {
-      return res.send({ msg: "please enter valid password " });
-    }
-  } catch (error) {
-    return res.status(500).send({ msg: "Something went wrong!" });
+  // Compare passwords
+  if (hash === sha256(password + process.env.SALT)) {
+    let token = jwt.sign({ userID: user._id }, "masai");
+    return res.send({ msg: "Login successful", token: token });
+  } else {
+    return res.send({ msg: "Please enter a valid password." });
   }
 });
 
-const PORT = process.env._PORT || 8001;
+const PORT = process.env.PORT || 8001;
 app.listen(PORT, async () => {
   try {
     await connection;
@@ -81,5 +76,5 @@ app.listen(PORT, async () => {
     console.log(error);
     console.log("Not connected to DB!!");
   }
-  console.log(`server is running port ${PORT} `);
+  console.log(`Server is running on port ${PORT}`);
 });
